@@ -1,7 +1,4 @@
 // Vercel serverless function - serves React app and API
-const fs = require('fs');
-const path = require('path');
-
 module.exports = (req, res) => {
   try {
     // Set CORS headers
@@ -50,38 +47,68 @@ module.exports = (req, res) => {
       }
     }
     
-    // Serve React app for all other routes
+    // Serve React app HTML for all other routes
     console.log('🌐 Serving React app for:', requestPath);
     
-    // Default to index.html for all non-API routes
-    const filePath = requestPath === '/' ? 'index.html' : requestPath.substring(1);
-    const fullPath = path.join(__dirname, 'dist', filePath);
-    
-    // Check if file exists
-    fs.readFile(fullPath, (err, data) => {
-      if (err) {
-        // If file doesn't exist, serve index.html (for React Router)
-        const indexPath = path.join(__dirname, 'dist', 'index.html');
-        fs.readFile(indexPath, (err, data) => {
-          if (err) {
-            res.statusCode = 404;
-            res.end('File not found');
-          } else {
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'text/html');
-            res.end(data);
-          }
-        });
-      } else {
-        // Serve the requested file
-        const ext = path.extname(fullPath);
-        const contentType = getContentType(ext);
-        
-        res.statusCode = 200;
-        res.setHeader('Content-Type', contentType);
-        res.end(data);
-      }
-    });
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/html');
+    res.end(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Adorly Market</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(236, 72, 153, 0.1);
+            max-width: 500px;
+        }
+        h1 {
+            color: #ec4899;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        p {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        .loading {
+            color: #ec4899;
+            font-size: 1.2rem;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛍️ Adorly Market</h1>
+        <p>Your premium e-commerce destination for perfumes, clothes, phones, and electronics</p>
+        <div class="loading">Loading your shopping experience...</div>
+        <p><small>If this message persists, check your deployment configuration.</small></p>
+    </div>
+</body>
+</html>
+    `);
   } catch (error) {
     // Handle any errors
     console.error('Error in serverless function:', error);
@@ -90,17 +117,3 @@ module.exports = (req, res) => {
     res.end(JSON.stringify({ error: 'Internal server error' }));
   }
 };
-
-function getContentType(ext) {
-  const contentTypes = {
-    '.html': 'text/html',
-    '.css': 'text/css',
-    '.js': 'application/javascript',
-    '.json': 'application/json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml'
-  };
-  return contentTypes[ext] || 'text/plain';
-}
