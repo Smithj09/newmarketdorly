@@ -4,7 +4,8 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config();
+// Load environment variables
+dotenv.config({ path: '.env.local' });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'adorly-secret-key';
 
@@ -14,8 +15,8 @@ app.use(cors());
 app.use(express.json());
 
 // In-memory storage
-let users: any[] = [];
-let orders: any[] = [];
+let users = [];
+let orders = [];
 
 // Fallback products
 const fallbackProducts = [
@@ -42,23 +43,23 @@ const fallbackProducts = [
 ];
 
 // Auth Middleware
-const authenticateToken = (req: any, res: any, next: any) => {
+function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) return res.sendStatus(401);
 
-  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) return res.sendStatus(403);
     req.user = user;
     next();
   });
-};
+}
 
-const isAdmin = (req: any, res: any, next: any) => {
+function isAdmin(req, res, next) {
   if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
   next();
-};
+}
 
 // API Routes
 app.post('/api/auth/sync', (req, res) => {
@@ -117,7 +118,7 @@ app.delete('/api/products/:id', authenticateToken, isAdmin, (req, res) => {
   }
 });
 
-app.get('/api/orders/my', authenticateToken, (req: any, res) => {
+app.get('/api/orders/my', authenticateToken, (req, res) => {
   try {
     const userOrders = orders.filter(order => order.user_id === req.user.id);
     res.json(userOrders);
@@ -136,7 +137,7 @@ app.get('/api/orders', authenticateToken, isAdmin, (req, res) => {
   }
 });
 
-app.post('/api/orders', authenticateToken, (req: any, res) => {
+app.post('/api/orders', authenticateToken, (req, res) => {
   try {
     const { items, total_price } = req.body;
     const newOrder = {
@@ -145,7 +146,7 @@ app.post('/api/orders', authenticateToken, (req: any, res) => {
       total_price,
       status: 'pending',
       created_at: new Date().toISOString(),
-      items: items.map((item: any) => ({
+      items: items.map((item) => ({
         ...item,
         product_name: fallbackProducts.find(p => p.id === item.id)?.name || 'Product'
       }))
@@ -183,6 +184,26 @@ if (process.env.NODE_ENV === "production") {
       console.error('Error sending index.html:', error);
       res.status(200).send('Adorly Market is running');
     }
+  });
+}
+
+// Test route
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'Server is working!',
+    products: fallbackProducts.length,
+    env: {
+      JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'NOT SET',
+      SUPABASE_URL: process.env.VITE_SUPABASE_URL ? 'SET' : 'NOT SET'
+    }
+  });
+});
+
+// Start server for local development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
