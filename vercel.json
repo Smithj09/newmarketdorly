@@ -1,17 +1,9 @@
 {
   "version": 2,
-  "build": {
-    "command": "npm run build",
-    "outputDirectory": "dist"
-  },
   "builds": [
     {
       "src": "serverless.cjs",
       "use": "@vercel/node"
-    },
-    {
-      "src": "dist/(.*)",
-      "use": "@vercel/static"
     }
   ],
   "routes": [

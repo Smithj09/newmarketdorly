@@ -1,4 +1,4 @@
-// Vercel serverless function - catch-all
+// Vercel serverless function - raw Node.js
 module.exports = (req, res) => {
   try {
     // Set CORS headers
@@ -8,32 +8,45 @@ module.exports = (req, res) => {
     
     // Handle OPTIONS request
     if (req.method === 'OPTIONS') {
-      return res.status(200).end();
+      res.statusCode = 200;
+      return res.end();
     }
     
-    // Get path from URL (simple parsing)
+    // Get path from URL
     const path = req.url.split('?')[0];
     
     // Handle different paths
     if (path === '/' || path === '/index.html') {
-      res.status(200).send('Hello World!');
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'text/plain');
+      res.end('Hello World!');
     } else if (path === '/api/hello') {
-      res.status(200).json({ message: 'Hello from Vercel!' });
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ message: 'Hello from Vercel!' }));
     } else if (path === '/api/health') {
-      res.status(200).json({ status: 'ok' });
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ status: 'ok' }));
     } else if (path === '/api/test') {
-      res.status(200).json({ 
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ 
         message: 'Test successful',
         path: path,
         method: req.method,
         timestamp: new Date().toISOString()
-      });
+      }));
     } else {
-      res.status(404).json({ error: 'Not found' });
+      res.statusCode = 404;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: 'Not found' }));
     }
   } catch (error) {
-    // Handle any errors to prevent crash
+    // Handle any errors
     console.error('Error in serverless function:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ error: 'Internal server error' }));
   }
 };
