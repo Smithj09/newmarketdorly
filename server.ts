@@ -4,6 +4,9 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const db = new Database('market.db');
 const JWT_SECRET = process.env.JWT_SECRET || 'adorly-secret-key';
@@ -75,6 +78,30 @@ if (productCount.count === 0) {
   seedProducts.forEach(p => insert.run(p.name, p.description, p.price, p.image_url, p.category));
 }
 
+// Fallback products for when database is unavailable
+const fallbackProducts = [
+  // Perfume
+  { name: 'Rose Elegance', description: 'A delicate floral scent with notes of fresh roses.', price: 85.00, image_url: 'https://picsum.photos/seed/perfume1/400/400', category: 'Perfume' },
+  { name: 'Fresh Bloom', description: 'A vibrant and energetic citrus floral fragrance.', price: 65.00, image_url: 'https://picsum.photos/seed/perfume2/400/400', category: 'Perfume' },
+  { name: 'Velvet Night', description: 'Deep, mysterious woody notes for evening wear.', price: 95.00, image_url: 'https://picsum.photos/seed/perfume3/400/400', category: 'Perfume' },
+  { name: 'Citrus Splash', description: 'Refreshing lemon and bergamot summer scent.', price: 45.00, image_url: 'https://picsum.photos/seed/perfume4/400/400', category: 'Perfume' },
+  // Clothes
+  { name: 'Pink Floral Dress', description: 'Elegant summer dress with a beautiful floral pattern.', price: 55.00, image_url: 'https://picsum.photos/seed/clothes1/400/400', category: 'Clothes' },
+  { name: 'Stylish Denim Jacket', description: 'Classic blue denim with a modern oversized fit.', price: 75.00, image_url: 'https://picsum.photos/seed/clothes2/400/400', category: 'Clothes' },
+  { name: 'Comfy Sweatshirt', description: 'Soft cotton blend sweatshirt in pastel pink.', price: 40.00, image_url: 'https://picsum.photos/seed/clothes3/400/400', category: 'Clothes' },
+  { name: 'Elegant Blouse', description: 'Silk-feel blouse perfect for office or dinner.', price: 48.00, image_url: 'https://picsum.photos/seed/clothes4/400/400', category: 'Clothes' },
+  // Phone
+  { name: 'Smartphone Pro', description: 'Latest flagship with triple camera system.', price: 999.00, image_url: 'https://picsum.photos/seed/phone1/400/400', category: 'Phone' },
+  { name: 'Budget Smartphone', description: 'Reliable performance at an accessible price.', price: 299.00, image_url: 'https://picsum.photos/seed/phone2/400/400', category: 'Phone' },
+  { name: 'Gaming Phone', description: 'High refresh rate screen and cooling system.', price: 799.00, image_url: 'https://picsum.photos/seed/phone3/400/400', category: 'Phone' },
+  { name: 'Flip Phone', description: 'Modern foldable technology in a compact form.', price: 1199.00, image_url: 'https://picsum.photos/seed/phone4/400/400', category: 'Phone' },
+  // Electronics
+  { name: 'Wireless Earbuds', description: 'Noise cancelling with 24-hour battery life.', price: 129.00, image_url: 'https://picsum.photos/seed/elec1/400/400', category: 'Electronics' },
+  { name: 'Smartwatch', description: 'Track your fitness and stay connected.', price: 199.00, image_url: 'https://picsum.photos/seed/elec2/400/400', category: 'Electronics' },
+  { name: 'Portable Charger', description: '20000mAh capacity for multiple charges.', price: 35.00, image_url: 'https://picsum.photos/seed/elec3/400/400', category: 'Electronics' },
+  { name: 'Bluetooth Speaker', description: 'Waterproof with 360-degree sound.', price: 59.00, image_url: 'https://picsum.photos/seed/elec4/400/400', category: 'Electronics' },
+];
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -120,8 +147,19 @@ async function startServer() {
   });
 
   app.get('/api/products', (req, res) => {
-    const products = db.prepare('SELECT * FROM products').all();
-    res.json(products);
+    try {
+      const products = db.prepare('SELECT * FROM products').all();
+      // If no products in database, return fallback products
+      if (Array.isArray(products) && products.length === 0) {
+        res.json(fallbackProducts.map((p, i) => ({ id: i + 1, ...p })));
+      } else {
+        res.json(products);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      // Return fallback products on database error
+      res.json(fallbackProducts.map((p, i) => ({ id: i + 1, ...p })));
+    }
   });
 
   app.post('/api/products', authenticateToken, isAdmin, (req, res) => {
