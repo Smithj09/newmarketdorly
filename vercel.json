@@ -1,8 +1,12 @@
 {
   "version": 2,
+  "build": {
+    "command": "npm run build",
+    "outputDirectory": "dist"
+  },
   "builds": [
     {
-      "src": "server.ts",
+      "src": "server.cjs",
       "use": "@vercel/node"
     },
     {
@@ -13,12 +17,11 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server.ts"
+      "dest": "server.cjs"
     },
     {
       "src": "/(.*)",
-      "dest": "server.ts"
+      "dest": "server.cjs"
     }
-  ],
-  "outputDirectory": "dist"
+  ]
 }

@@ -1,8 +1,8 @@
-import express from 'express';
-import cors from 'cors';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-import path from 'path';
+const express = require('express');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+const path = require('path');
 
 // Load environment variables
 try {
@@ -250,7 +250,7 @@ if (process.env.NODE_ENV === "production") {
 // Start server for local development
 if (process.env.NODE_ENV !== 'production') {
   try {
-    const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 5001;
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
@@ -260,4 +260,4 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Export the Express app as the default handler for Vercel
-export default app;
+module.exports = app;
