@@ -1,20 +1,23 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
-import path from 'path';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import path from 'path';
 
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'adorly-secret-key';
 
-// In-memory storage for serverless environment
-let db: any = null;
+// Create Express app
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// In-memory storage
 let users: any[] = [];
 let orders: any[] = [];
 
-// Fallback products for serverless environment
+// Fallback products
 const fallbackProducts = [
   // Perfume
   { id: 1, name: 'Rose Elegance', description: 'A delicate floral scent with notes of fresh roses.', price: 85.00, image_url: 'https://picsum.photos/seed/perfume1/400/400', category: 'Perfume' },
@@ -38,197 +41,150 @@ const fallbackProducts = [
   { id: 16, name: 'Bluetooth Speaker', description: 'Waterproof with 360-degree sound.', price: 59.00, image_url: 'https://picsum.photos/seed/elec4/400/400', category: 'Electronics' },
 ];
 
-async function startServer() {
-  const app = express();
-  const PORT = process.env.PORT || 3000;
+// Auth Middleware
+const authenticateToken = (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
-  app.use(cors());
-  app.use(express.json());
+  if (!token) return res.sendStatus(401);
 
-  // Auth Middleware
-  const authenticateToken = (req: any, res: any, next: any) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) return res.sendStatus(401);
-
-    jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-      if (err) return res.sendStatus(403);
-      req.user = user;
-      next();
-    });
-  };
-
-  const isAdmin = (req: any, res: any, next: any) => {
-    if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
     next();
-  };
+  });
+};
 
-  // API Routes
-  app.post('/api/auth/sync', (req, res) => {
+const isAdmin = (req: any, res: any, next: any) => {
+  if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+  next();
+};
+
+// API Routes
+app.post('/api/auth/sync', (req, res) => {
+  try {
     const { id, username } = req.body;
-    
-    // Check if this is the first user to make them admin
     const role = users.length === 0 ? 'admin' : 'user';
 
-    try {
-      // Find or create user
-      let user = users.find(u => u.id === id);
-      if (!user) {
-        user = { id, username, role };
-        users.push(user);
-      }
-      
-      const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET);
-      res.json({ token, user });
-    } catch (error) {
-      console.error('Error syncing user:', error);
-      res.status(500).json({ error: 'Failed to sync user' });
+    let user = users.find(u => u.id === id);
+    if (!user) {
+      user = { id, username, role };
+      users.push(user);
     }
-  });
+    
+    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET);
+    res.json({ token, user });
+  } catch (error) {
+    console.error('Error syncing user:', error);
+    res.status(500).json({ error: 'Failed to sync user' });
+  }
+});
 
-  app.get('/api/products', (req, res) => {
-    try {
-      // Always return fallback products in serverless environment
-      res.json(fallbackProducts);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      res.json(fallbackProducts);
-    }
-  });
+app.get('/api/products', (req, res) => {
+  try {
+    res.json(fallbackProducts);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.json(fallbackProducts);
+  }
+});
 
-  app.post('/api/products', authenticateToken, isAdmin, (req, res) => {
-    const { name, description, price, image_url, category } = req.body;
-    try {
-      // In serverless environment, we'll just return a mock response
-      const newId = fallbackProducts.length + 1;
-      res.json({ id: newId });
-    } catch (error) {
-      console.error('Error creating product:', error);
-      res.status(500).json({ error: 'Failed to create product' });
-    }
-  });
+app.post('/api/products', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const newId = fallbackProducts.length + 1;
+    res.json({ id: newId });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.status(500).json({ error: 'Failed to create product' });
+  }
+});
 
-  app.put('/api/products/:id', authenticateToken, isAdmin, (req, res) => {
-    try {
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error updating product:', error);
-      res.status(500).json({ error: 'Failed to update product' });
-    }
-  });
+app.put('/api/products/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ error: 'Failed to update product' });
+  }
+});
 
-  app.delete('/api/products/:id', authenticateToken, isAdmin, (req, res) => {
-    try {
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      res.status(500).json({ error: 'Failed to delete product' });
-    }
-  });
+app.delete('/api/products/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+});
 
-  app.get('/api/orders/my', authenticateToken, (req: any, res) => {
-    try {
-      const userOrders = orders.filter(order => order.user_id === req.user.id);
-      res.json(userOrders);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      res.json([]);
-    }
-  });
+app.get('/api/orders/my', authenticateToken, (req: any, res) => {
+  try {
+    const userOrders = orders.filter(order => order.user_id === req.user.id);
+    res.json(userOrders);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.json([]);
+  }
+});
 
-  app.get('/api/orders', authenticateToken, isAdmin, (req, res) => {
-    try {
-      res.json(orders);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      res.json([]);
-    }
-  });
+app.get('/api/orders', authenticateToken, isAdmin, (req, res) => {
+  try {
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.json([]);
+  }
+});
 
-  app.post('/api/orders', authenticateToken, (req: any, res) => {
+app.post('/api/orders', authenticateToken, (req: any, res) => {
+  try {
     const { items, total_price } = req.body;
-    try {
-      const newOrder = {
-        id: orders.length + 1,
-        user_id: req.user.id,
-        total_price,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        items: items.map((item: any) => ({
-          ...item,
-          product_name: fallbackProducts.find(p => p.id === item.id)?.name || 'Product'
-        }))
-      };
-      orders.push(newOrder);
-      res.json({ id: newOrder.id });
-    } catch (error) {
-      console.error('Error creating order:', error);
-      res.status(500).json({ error: 'Failed to create order' });
-    }
-  });
+    const newOrder = {
+      id: orders.length + 1,
+      user_id: req.user.id,
+      total_price,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      items: items.map((item: any) => ({
+        ...item,
+        product_name: fallbackProducts.find(p => p.id === item.id)?.name || 'Product'
+      }))
+    };
+    orders.push(newOrder);
+    res.json({ id: newOrder.id });
+  } catch (error) {
+    console.error('Error creating order:', error);
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+});
 
-  app.patch('/api/orders/:id/status', authenticateToken, isAdmin, (req, res) => {
+app.patch('/api/orders/:id/status', authenticateToken, isAdmin, (req, res) => {
+  try {
     const { status } = req.body;
     const { id } = req.params;
-    try {
-      const order = orders.find(o => o.id === parseInt(id));
-      if (order) {
-        order.status = status;
-      }
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      res.status(500).json({ error: 'Failed to update order status' });
+    const order = orders.find(o => o.id === parseInt(id));
+    if (order) {
+      order.status = status;
     }
-  });
-
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    try {
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: "spa",
-      });
-      app.use(vite.middlewares);
-    } catch (error) {
-      console.error('Error starting Vite:', error);
-    }
-  } else {
-    app.use(express.static(path.join(__dirname, 'dist')));
-    app.get('*', (req, res) => {
-      try {
-        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-      } catch (error) {
-        console.error('Error sending index.html:', error);
-        res.status(500).send('Internal Server Error');
-      }
-    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({ error: 'Failed to update order status' });
   }
+});
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
-
-// Start server with error handling
-try {
-  startServer();
-} catch (error) {
-  console.error('Error starting server:', error);
-  // Create a simple fallback server
-  const app = express();
-  app.use(cors());
-  app.use(express.json());
-  
-  // Fallback routes
-  app.get('/api/products', (req, res) => res.json(fallbackProducts));
+// Serve static files in production
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, 'dist')));
   app.get('*', (req, res) => {
-    res.status(200).send('Adorly Market API is running');
-  });
-  
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Fallback server running on http://localhost:${PORT}`);
+    try {
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    } catch (error) {
+      console.error('Error sending index.html:', error);
+      res.status(200).send('Adorly Market is running');
+    }
   });
 }
+
+// Export the Express app as the default handler for Vercel
+export default app;
