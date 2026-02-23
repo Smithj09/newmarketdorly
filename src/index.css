@@ -1,27 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-@import "tailwindcss";
-
-@theme {
-  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
-  --color-primary: #ec4899;
-  --color-primary-dark: #db2777;
-  --color-primary-light: #fbcfe8;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   body {
-    @apply font-sans bg-white text-black;
+    font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
+    @apply bg-white text-black;
   }
 }
 
-.glass-morphism {
-  @apply bg-white/80 backdrop-blur-md border border-white/20;
-}
+@layer components {
+  .glass-morphism {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
 
-.pink-gradient {
-  @apply bg-gradient-to-br from-pink-500 to-pink-600;
-}
+  .pink-gradient {
+    @apply bg-gradient-to-br from-pink-500 to-pink-600;
+  }
 
-.pink-glow {
-  @apply shadow-[0_0_15px_rgba(236,72,153,0.3)];
+  .pink-glow {
+    @apply shadow-[0_0_15px_rgba(236,72,153,0.3)];
+  }
 }

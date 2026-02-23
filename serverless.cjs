@@ -1,4 +1,4 @@
-// Vercel serverless function - raw Node.js
+// Vercel serverless function - API only
 module.exports = (req, res) => {
   try {
     // Set CORS headers
@@ -15,12 +15,8 @@ module.exports = (req, res) => {
     // Get path from URL
     const path = req.url.split('?')[0];
     
-    // Handle different paths
-    if (path === '/' || path === '/index.html') {
-      res.statusCode = 200;
-      res.setHeader('Content-Type', 'text/plain');
-      res.end('Hello World!');
-    } else if (path === '/api/hello') {
+    // Handle API routes only
+    if (path === '/api/hello') {
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ message: 'Hello from Vercel!' }));
@@ -38,9 +34,10 @@ module.exports = (req, res) => {
         timestamp: new Date().toISOString()
       }));
     } else {
+      // For non-API routes, let Vercel serve the React app
       res.statusCode = 404;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: 'Not found' }));
+      res.end(JSON.stringify({ error: 'API route not found' }));
     }
   } catch (error) {
     // Handle any errors

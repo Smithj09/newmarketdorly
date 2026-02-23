@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const handler = require('./serverless.cjs');
 
-const PORT = 3001;
+const PORT = 3002; // Changed to 3002 to avoid conflicts
 
 const server = http.createServer((req, res) => {
   console.log(`\n=== REQUEST RECEIVED ===`);
