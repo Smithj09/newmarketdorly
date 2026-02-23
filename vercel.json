@@ -6,7 +6,7 @@
   },
   "builds": [
     {
-      "src": "vercel-debug.cjs",
+      "src": "hello.cjs",
       "use": "@vercel/node"
     },
     {
@@ -17,11 +17,11 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "vercel-debug.cjs"
+      "dest": "hello.cjs"
     },
     {
       "src": "/(.*)",
-      "dest": "vercel-debug.cjs"
+      "dest": "hello.cjs"
     }
   ]
 }

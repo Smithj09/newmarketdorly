@@ -19,5 +19,13 @@ app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
+// Start server for local development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5003;
+  app.listen(PORT, () => {
+    console.log(`Hello server running on http://localhost:${PORT}`);
+  });
+}
+
 // Export the app
 module.exports = app;
